@@ -1,21 +1,15 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/SomeSuperCoder/go-auth/internal/middleware"
 	"github.com/SomeSuperCoder/go-auth/internal/utils"
 )
 
-type Login struct {
-	HashedPassword string
-	SessionToken   string
-	CSRFToken      string
-}
-
-var users = map[string]Login{}
+var users = map[string]utils.Login{}
 
 func main() {
 	rootMux := http.NewServeMux()
@@ -24,24 +18,13 @@ func main() {
 	// Auth routes
 	rootMux.HandleFunc("POST /register", register)
 	rootMux.HandleFunc("POST /login", login)
-	rootMux.Handle("POST /logout", authMiddleware(http.HandlerFunc(logout)))
+	rootMux.Handle("POST /logout", middleware.AuthMiddleware(http.HandlerFunc(logout), users))
 
 	// API routes
 	apiMux.HandleFunc("POST /protected", protected)
-	rootMux.Handle("/api/", authMiddleware(http.StripPrefix("/api", apiMux)))
+	rootMux.Handle("/api/", middleware.AuthMiddleware(http.StripPrefix("/api", apiMux), users))
 
 	http.ListenAndServe(":8080", rootMux)
-}
-
-func authMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := Authorize(r); err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
 }
 
 func register(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +42,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	hashedPassword, _ := utils.HashPassword(password)
-	users[username] = Login{
+	users[username] = utils.Login{
 		HashedPassword: hashedPassword,
 	}
 
@@ -132,29 +115,4 @@ func logout(w http.ResponseWriter, r *http.Request) {
 func protected(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	fmt.Fprintf(w, "Welcome, %s!\n", username)
-}
-
-// Session.go
-var AuthError = errors.New("Unauthorized")
-
-func Authorize(r *http.Request) error {
-	username := r.FormValue("username")
-	user, ok := users[username]
-	if !ok {
-		return AuthError
-	}
-
-	// Get the session token from the cookie
-	st, err := r.Cookie("session_token")
-	if err != nil || st.Value == "" || st.Value != user.SessionToken {
-		return AuthError
-	}
-
-	// Get the CSRF token from the headers
-	csrf := r.Header.Get("X-CSRF-Token")
-	if csrf != user.CSRFToken || csrf == "" {
-		return AuthError
-	}
-
-	return nil
 }
