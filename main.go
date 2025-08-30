@@ -1,15 +1,12 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/SomeSuperCoder/go-auth/internal/utils"
 )
 
 type Login struct {
@@ -61,7 +58,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, _ := hashPassword(password)
+	hashedPassword, _ := utils.HashPassword(password)
 	users[username] = Login{
 		HashedPassword: hashedPassword,
 	}
@@ -75,13 +72,13 @@ func login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	user, ok := users[username]
-	if !ok || !checkPasswordhash(password, user.HashedPassword) {
+	if !ok || !utils.CheckPasswordhash(password, user.HashedPassword) {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
-	sessionToken := generateToken(32)
-	csrfToken := generateToken(32)
+	sessionToken := utils.GenerateToken(32)
+	csrfToken := utils.GenerateToken(32)
 	expires := time.Now().Add(24 * time.Hour)
 
 	// Set token cookie
@@ -135,27 +132,6 @@ func logout(w http.ResponseWriter, r *http.Request) {
 func protected(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	fmt.Fprintf(w, "Welcome, %s!\n", username)
-}
-
-// Utils.go
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 10)
-	return string(bytes), err
-}
-
-func checkPasswordhash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-func generateToken(length int) string {
-	bytes := make([]byte, length)
-
-	if _, err := rand.Read(bytes); err != nil {
-		log.Fatalf("Failed to generate token %v", err)
-	}
-
-	return base64.URLEncoding.EncodeToString(bytes)
 }
 
 // Session.go
