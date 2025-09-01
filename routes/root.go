@@ -9,11 +9,11 @@ import (
 
 var users = map[string]utils.Login{}
 
-func LoadRoutes() *http.ServeMux {
+func LoadRoutes() http.Handler {
 	rootMux := http.NewServeMux()
 
 	rootMux.Handle("/", loadAuthRoutes())
 	rootMux.Handle("/api/", middleware.AuthMiddleware(http.StripPrefix("/api", loadExampleMux()), users))
 
-	return rootMux
+	return middleware.LoggerMiddleware(rootMux)
 }

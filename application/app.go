@@ -9,7 +9,7 @@ import (
 )
 
 type App struct {
-	router *http.ServeMux
+	router http.Handler
 }
 
 func New() *App {
