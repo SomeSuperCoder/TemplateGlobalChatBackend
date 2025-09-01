@@ -3,7 +3,7 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/SomeSuperCoder/go-auth/internal/utils"
+	"github.com/SomeSuperCoder/global-chat/utils"
 )
 
 func AuthMiddleware(next http.Handler, users map[string]utils.Login) http.Handler {

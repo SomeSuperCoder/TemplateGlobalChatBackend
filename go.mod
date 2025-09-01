@@ -1,4 +1,4 @@
-module github.com/SomeSuperCoder/go-auth
+module github.com/SomeSuperCoder/global-chat
 
 go 1.24.5
 
