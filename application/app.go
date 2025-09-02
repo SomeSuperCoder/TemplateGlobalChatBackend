@@ -13,6 +13,8 @@ import (
 
 type App struct {
 	router http.Handler
+	client *mongo.Client
+	db     *mongo.Database
 }
 
 func New() *App {
@@ -24,9 +26,10 @@ func New() *App {
 }
 
 func (a *App) Start(ctx context.Context) error {
+	var err error
 	// ========== MongoDB ==========
 	connectionString := "mongodb://localhost:27017"
-	client, err := mongo.Connect(options.Client().ApplyURI(connectionString))
+	a.client, err = mongo.Connect(options.Client().ApplyURI(connectionString))
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
@@ -34,12 +37,13 @@ func (a *App) Start(ctx context.Context) error {
 	// Ping MongoDB
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
-	err = client.Ping(timeoutCtx, nil)
+	err = a.client.Ping(timeoutCtx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to ping MongoDB nor connect: %w", err)
 	}
 
-	// database := client.Database("chat")
+	// Get the project database
+	a.db = a.client.Database("chat")
 
 	// ========== HTTP server ==========
 	server := &http.Server{
