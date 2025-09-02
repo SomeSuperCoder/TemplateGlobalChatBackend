@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SomeSuperCoder/global-chat/routes"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
@@ -19,7 +18,7 @@ type App struct {
 
 func New() *App {
 	app := &App{
-		router: routes.LoadRoutes(),
+		router: loadRoutes(),
 	}
 
 	return app
