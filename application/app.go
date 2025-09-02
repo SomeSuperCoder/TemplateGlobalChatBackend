@@ -42,6 +42,9 @@ func (a *App) Start(ctx context.Context) error {
 	// Get the project database
 	a.db = a.client.Database("chat")
 
+	// ========== Load Routes ==========
+	a.router = loadRoutes(a.db)
+
 	// ========== HTTP server ==========
 	server := &http.Server{
 		Addr:    ":8080",

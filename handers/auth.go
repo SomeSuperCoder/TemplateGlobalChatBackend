@@ -1,10 +1,12 @@
 package handers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/SomeSuperCoder/global-chat/models"
 	"github.com/SomeSuperCoder/global-chat/repository"
 	"github.com/SomeSuperCoder/global-chat/utils"
 )
@@ -19,20 +21,28 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
+	// Check username and password length
 	if len(username) < 8 || len(password) < 8 {
 		http.Error(w, "Invalid username/password", http.StatusNotAcceptable)
 		return
 	}
 
-	if _, ok := users[username]; ok {
+	// Make sure such user does not already exist
+	doesExist := h.Repo.DoesExist(context.TODO(), username)
+	if doesExist {
 		http.Error(w, "User already exists", http.StatusConflict)
 		return
 	}
 
+	// Create new user
 	hashedPassword, _ := utils.HashPassword(password)
-	users[username] = utils.Login{
-		HashedPassword: hashedPassword,
+	newUser := &models.User{
+		Username: username,
+		Password: hashedPassword,
+		Sessions: []models.UserSession{},
 	}
+
+	h.Repo.Register(context.TODO(), newUser)
 
 	fmt.Fprintln(w, "User registered successfully!")
 
