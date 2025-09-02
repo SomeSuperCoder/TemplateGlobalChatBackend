@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/SomeSuperCoder/global-chat/repository"
 	"github.com/SomeSuperCoder/global-chat/utils"
 )
 
 var users = map[string]utils.Login{}
 
-type AuthHandler struct{}
+type AuthHandler struct {
+	Repo repository.UserRepo
+}
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
