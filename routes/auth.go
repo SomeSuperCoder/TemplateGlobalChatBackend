@@ -9,17 +9,20 @@ import (
 	"github.com/SomeSuperCoder/global-chat/utils"
 )
 
+type AuthHandler struct{}
+
 func loadAuthRoutes() *http.ServeMux {
+	authHandler := &AuthHandler{}
 	authMux := http.NewServeMux()
 
-	authMux.HandleFunc("POST /register", register)
-	authMux.HandleFunc("POST /login", login)
-	authMux.Handle("POST /logout", middleware.AuthMiddleware(http.HandlerFunc(logout), users))
+	authMux.HandleFunc("POST /register", authHandler.register)
+	authMux.HandleFunc("POST /login", authHandler.login)
+	authMux.Handle("POST /logout", middleware.AuthMiddleware(http.HandlerFunc(authHandler.logout), users))
 
 	return authMux
 }
 
-func register(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) register(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
@@ -42,7 +45,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
@@ -80,7 +83,7 @@ func login(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Login successful!")
 }
 
-func logout(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) logout(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
