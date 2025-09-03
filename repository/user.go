@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/SomeSuperCoder/global-chat/models"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -45,9 +46,31 @@ func (r *UserRepo) AddLoginSession(ctx context.Context, username string, session
 	}
 
 	_, err := r.Database.Collection("users").UpdateOne(ctx, bson.M{"username": username}, update)
-	if err != nil {
-		return err
+	return err
+}
+
+func (r *UserRepo) FinalizeSession(ctx context.Context, username string, sessionToken string) error {
+	update := bson.M{
+		"$pull": bson.M{
+			"sessions": bson.M{
+				"session_token": sessionToken,
+			},
+		},
 	}
 
-	return nil
+	_, err := r.Database.Collection("users").UpdateOne(ctx, bson.M{"username": username}, update)
+	return err
+}
+
+func (r *UserRepo) AuthCheck(ctx context.Context, username string, sessionToken string, csrfToken string) bool {
+	fmt.Println(username)
+	fmt.Println(sessionToken)
+	fmt.Println(csrfToken)
+	res := r.Database.Collection("users").FindOne(ctx, bson.M{
+		"username":               username,
+		"sessions.session_token": sessionToken,
+		"sessions.csrf_token":    csrfToken,
+	})
+
+	return !errors.Is(res.Err(), mongo.ErrNoDocuments)
 }

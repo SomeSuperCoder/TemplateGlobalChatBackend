@@ -112,7 +112,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Login successful!")
 }
 
+// This functions needs to be wrapped with an auth middleware
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	username := r.FormValue("username")
+
+	// Reset cookies
 	http.SetCookie(w, &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
@@ -127,11 +131,13 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: false,
 	})
 
-	username := r.FormValue("username")
-	user, _ := users[username]
-	user.SessionToken = ""
-	user.CSRFToken = ""
-	users[username] = user
+	// Get session token
+	sessionToken, _ := r.Cookie("session_token")
+	// Remove session from database
+	err := h.Repo.FinalizeSession(context.TODO(), username, sessionToken.Value)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	fmt.Fprintln(w, "Logged out successfully!")
 }
