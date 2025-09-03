@@ -2,6 +2,7 @@ package handers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -37,12 +38,13 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Create new user
 	hashedPassword, _ := utils.HashPassword(password)
 	newUser := &models.User{
-		Username: username,
-		Password: hashedPassword,
-		Sessions: []models.UserSession{},
+		Username:       username,
+		HashedPassword: hashedPassword,
+		Sessions:       []models.UserSession{},
+		CratedAt:       time.Now(),
 	}
 
-	h.Repo.Register(context.TODO(), newUser)
+	h.Repo.CreateUser(context.TODO(), newUser)
 
 	fmt.Fprintln(w, "User registered successfully!")
 
@@ -52,15 +54,32 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	user, ok := users[username]
-	if !ok || !utils.CheckPasswordhash(password, user.HashedPassword) {
+	// Get the user
+	user, err := h.Repo.GetUser(context.TODO(), username)
+
+	// Check if user exists
+	if errors.Is(err, repository.ErrUserNotFound) {
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 
+	// Check for any other errors
+	if err != nil {
+		fmt.Println("Any other error!")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Verify password
+	if !utils.CheckPasswordhash(password, user.HashedPassword) {
+		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		return
+	}
+
+	// Generate tokens and expire date
 	sessionToken := utils.GenerateToken(32)
 	csrfToken := utils.GenerateToken(32)
-	expires := time.Now().Add(24 * time.Hour)
+	expires := time.Now().Add(7 * 24 * time.Hour) // 1 week
 
 	// Set token cookie
 	http.SetCookie(w, &http.Cookie{
@@ -79,9 +98,16 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 
 	// Store token in DB
-	user.SessionToken = sessionToken
-	user.CSRFToken = csrfToken
-	users[username] = user
+	newSession := models.UserSession{
+		SessionToken: sessionToken,
+		CSRFToken:    csrfToken,
+		CratedAt:     time.Now(),
+	}
+	err = h.Repo.AddLoginSession(context.TODO(), username, newSession)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Fprintln(w, "Login successful!")
 }
