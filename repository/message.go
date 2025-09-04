@@ -13,7 +13,7 @@ type MessageRepo struct {
 	Database *mongo.Database
 }
 
-func (r *MessageRepo) FindPaged(ctx context.Context, page, limit int64) ([]models.Message, error) {
+func (r *MessageRepo) FindPaged(ctx context.Context, page, limit int64) ([]models.Message, int64, error) {
 	var messages []models.Message
 
 	// Set pagination options
@@ -26,16 +26,20 @@ func (r *MessageRepo) FindPaged(ctx context.Context, page, limit int64) ([]model
 	// Init a cursor
 	cursor, err := r.Database.Collection("messages").Find(ctx, bson.M{}, opts)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
+	// Extract messages
 	err = cursor.All(ctx, &messages)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return messages, nil
+	// Get total message count
+	count, err := r.Database.Collection("messages").CountDocuments(ctx, bson.M{})
+
+	return messages, count, err // TODO: check if this works)))
 }
 
 func (r *MessageRepo) CreateMessage(ctx context.Context, message models.Message) error {
