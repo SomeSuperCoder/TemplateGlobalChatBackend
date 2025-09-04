@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
@@ -39,7 +38,7 @@ func Authorize(r *http.Request, db *mongo.Database) error {
 	}
 
 	// Verify
-	if !repo.AuthCheck(context.TODO(), username, st.Value, csrf) {
+	if !repo.AuthCheck(r.Context(), username, st.Value, csrf) {
 		return AuthError
 	}
 

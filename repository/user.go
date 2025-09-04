@@ -14,8 +14,9 @@ type UserRepo struct {
 	Database *mongo.Database
 }
 
-func (r *UserRepo) CreateUser(ctx context.Context, user *models.User) {
-	r.Database.Collection("users").InsertOne(ctx, user)
+func (r *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
+	_, err := r.Database.Collection("users").InsertOne(ctx, user)
+	return err
 }
 
 var ErrUserNotFound = errors.New("user not found")

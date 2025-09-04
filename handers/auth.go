@@ -1,7 +1,6 @@
 package handers
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,7 +28,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make sure such user does not already exist
-	doesExist := h.Repo.DoesExist(context.TODO(), username)
+	doesExist := h.Repo.DoesExist(r.Context(), username)
 	if doesExist {
 		http.Error(w, "User already exists", http.StatusConflict)
 		return
@@ -44,7 +43,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		CratedAt:       time.Now(),
 	}
 
-	h.Repo.CreateUser(context.TODO(), newUser)
+	err := h.Repo.CreateUser(r.Context(), newUser)
+	if err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	fmt.Fprintln(w, "User registered successfully!")
 
@@ -55,7 +58,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	password := r.FormValue("password")
 
 	// Get the user
-	user, err := h.Repo.GetUser(context.TODO(), username)
+	user, err := h.Repo.GetUser(r.Context(), username)
 
 	// Check if user exists
 	if errors.Is(err, repository.ErrUserNotFound) {
@@ -103,7 +106,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:    csrfToken,
 		CratedAt:     time.Now(),
 	}
-	err = h.Repo.AddLoginSession(context.TODO(), username, newSession)
+	err = h.Repo.AddLoginSession(r.Context(), username, newSession)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -134,7 +137,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Get session token
 	sessionToken, _ := r.Cookie("session_token")
 	// Remove session from database
-	err := h.Repo.FinalizeSession(context.TODO(), username, sessionToken.Value)
+	err := h.Repo.FinalizeSession(r.Context(), username, sessionToken.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

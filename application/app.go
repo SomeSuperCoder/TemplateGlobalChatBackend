@@ -30,6 +30,7 @@ func (a *App) Start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to MongoDB: %w", err)
 	}
+	defer a.client.Disconnect(ctx)
 
 	// Ping MongoDB
 	timeoutCtx, cancel := context.WithTimeout(ctx, time.Second*3)

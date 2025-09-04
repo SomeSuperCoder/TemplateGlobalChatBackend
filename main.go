@@ -10,7 +10,7 @@ import (
 func main() {
 	app := application.New()
 
-	err := app.Start(context.TODO())
+	err := app.Start(context.Background())
 	if err != nil {
 		fmt.Println("failed to start app:", err)
 	}
