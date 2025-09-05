@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/SomeSuperCoder/global-chat/repository"
@@ -24,7 +25,7 @@ func AuthMiddleware(next http.HandlerFunc, db *mongo.Database) http.HandlerFunc 
 	return func(w http.ResponseWriter, r *http.Request) {
 		userAuth, err := utils.Authorize(r, db)
 		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, fmt.Errorf("Failed to authorize: %w", err).Error(), http.StatusUnauthorized)
 			return
 		}
 

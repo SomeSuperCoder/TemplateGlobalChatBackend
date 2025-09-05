@@ -61,7 +61,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user exists
 	if errors.Is(err, repository.ErrUserNotFound) {
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+		http.Error(w, "Wrong username or password", http.StatusUnauthorized)
 		return
 	}
 
@@ -89,6 +89,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    sessionToken,
 		Expires:  expires,
 		HttpOnly: true,
+		Path:     "/",
 	})
 
 	// Set CSRF token cookie
@@ -97,6 +98,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Value:    csrfToken,
 		Expires:  expires,
 		HttpOnly: false,
+		Path:     "/",
 	})
 
 	// Store token in DB

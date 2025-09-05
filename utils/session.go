@@ -19,7 +19,7 @@ func Authorize(r *http.Request, db *mongo.Database) (*repository.UserAuth, error
 	// Get the session token from the cookie
 	st, err := r.Cookie("session_token")
 	if err != nil || st.Value == "" {
-		return nil, AuthError
+		return nil, err
 	}
 
 	// Get the CSRF token from the headers
@@ -31,7 +31,7 @@ func Authorize(r *http.Request, db *mongo.Database) (*repository.UserAuth, error
 	// Verify
 	userAuth, err := repo.AuthCheck(r.Context(), st.Value, csrf)
 	if err != nil {
-		return nil, AuthError
+		return nil, err
 	}
 
 	return userAuth, nil
