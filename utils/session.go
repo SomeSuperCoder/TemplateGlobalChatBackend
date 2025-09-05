@@ -8,39 +8,31 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-type Login struct {
-	HashedPassword string
-	SessionToken   string
-	CSRFToken      string
-}
-
 var AuthError = errors.New("Unauthorized")
 
-func Authorize(r *http.Request, db *mongo.Database) error {
+func Authorize(r *http.Request, db *mongo.Database) (*repository.UserAuth, error) {
 	// Init repo
 	repo := repository.UserRepo{
 		Database: db,
 	}
 
-	// Get uername
-	username := r.FormValue("username")
-
 	// Get the session token from the cookie
 	st, err := r.Cookie("session_token")
 	if err != nil || st.Value == "" {
-		return AuthError
+		return nil, AuthError
 	}
 
 	// Get the CSRF token from the headers
 	csrf := r.Header.Get("X-CSRF-Token")
 	if csrf == "" {
-		return AuthError
+		return nil, AuthError
 	}
 
 	// Verify
-	if !repo.AuthCheck(r.Context(), username, st.Value, csrf) {
-		return AuthError
+	userAuth, err := repo.AuthCheck(r.Context(), st.Value, csrf)
+	if err != nil {
+		return nil, AuthError
 	}
 
-	return nil
+	return userAuth, nil
 }

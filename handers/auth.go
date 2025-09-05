@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/SomeSuperCoder/global-chat/middleware"
 	"github.com/SomeSuperCoder/global-chat/models"
 	"github.com/SomeSuperCoder/global-chat/repository"
 	"github.com/SomeSuperCoder/global-chat/utils"
@@ -16,8 +17,8 @@ type AuthHandler struct {
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+	username := r.FormValue("username") // Allowed
+	password := r.FormValue("password") // Allowed
 
 	// Check username and password length
 	if len(username) < 8 || len(password) < 8 {
@@ -52,8 +53,8 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	username := r.FormValue("username")
-	password := r.FormValue("password")
+	username := r.FormValue("username") // Allowed
+	password := r.FormValue("password") // Allowed
 
 	// Get the user
 	user, err := h.Repo.GetUser(r.Context(), username)
@@ -115,7 +116,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 // This functions needs to be wrapped with an auth middleware
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
-	username := r.FormValue("username")
+	userAuth := middleware.ExtractUserAuth(r)
 
 	// Reset cookies
 	http.SetCookie(w, &http.Cookie{
@@ -135,7 +136,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	// Get session token
 	sessionToken, _ := r.Cookie("session_token")
 	// Remove session from database
-	err := h.Repo.FinalizeSession(r.Context(), username, sessionToken.Value)
+	err := h.Repo.FinalizeSession(r.Context(), userAuth.Username, sessionToken.Value)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

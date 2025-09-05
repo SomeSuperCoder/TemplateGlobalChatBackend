@@ -3,15 +3,20 @@ package repository
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/SomeSuperCoder/global-chat/models"
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type UserRepo struct {
 	Database *mongo.Database
+}
+
+type UserAuth struct {
+	Username string
+	UserID   bson.ObjectID
 }
 
 func (r *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
@@ -63,15 +68,26 @@ func (r *UserRepo) FinalizeSession(ctx context.Context, username string, session
 	return err
 }
 
-func (r *UserRepo) AuthCheck(ctx context.Context, username string, sessionToken string, csrfToken string) bool {
-	fmt.Println(username)
-	fmt.Println(sessionToken)
-	fmt.Println(csrfToken)
-	res := r.Database.Collection("users").FindOne(ctx, bson.M{
-		"username":               username,
+func (r *UserRepo) AuthCheck(ctx context.Context, sessionToken string, csrfToken string) (*UserAuth, error) {
+	var user models.User
+
+	err := r.Database.Collection("users").FindOne(ctx, bson.M{
 		"sessions.session_token": sessionToken,
 		"sessions.csrf_token":    csrfToken,
-	})
+	}).Decode(&user)
 
-	return !errors.Is(res.Err(), mongo.ErrNoDocuments)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, err
+		}
+		logrus.Error(err.Error())
+		return nil, err
+	}
+
+	userAuth := &UserAuth{
+		Username: user.Username,
+		UserID:   user.ID,
+	}
+
+	return userAuth, nil
 }
