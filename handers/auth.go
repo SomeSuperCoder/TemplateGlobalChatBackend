@@ -11,8 +11,6 @@ import (
 	"github.com/SomeSuperCoder/global-chat/utils"
 )
 
-var users = map[string]utils.Login{}
-
 type AuthHandler struct {
 	Repo repository.UserRepo
 }
