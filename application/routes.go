@@ -13,9 +13,9 @@ import (
 func loadRoutes(db *mongo.Database) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("POST /health", middleware.AuthMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintln(w, "OK")
-	}, db))
+	})
 	mux.Handle("/auth/", loadAuthRoutes(db))
 	mux.Handle("/messages/", loadMessageRoutes(db))
 
@@ -45,10 +45,10 @@ func loadMessageRoutes(db *mongo.Database) http.Handler {
 		},
 	}
 
-	messageMux.HandleFunc("GET /", middleware.AuthMiddleware(messageHandler.CreateMessage, db))
-	messageMux.HandleFunc("CREATE /", middleware.AuthMiddleware(messageHandler.CreateMessage, db))
-	messageMux.HandleFunc("UPDATE /{id}", middleware.AuthMiddleware(messageHandler.CreateMessage, db))
-	messageMux.HandleFunc("DELETE /{id}", middleware.AuthMiddleware(messageHandler.CreateMessage, db))
+	messageMux.HandleFunc("GET /", middleware.AuthMiddleware(messageHandler.GetMessages, db))
+	messageMux.HandleFunc("POST /", middleware.AuthMiddleware(messageHandler.CreateMessage, db))
+	messageMux.HandleFunc("PATCH /{id}", middleware.AuthMiddleware(messageHandler.UpdateMessageText, db))
+	messageMux.HandleFunc("DELETE /{id}", middleware.AuthMiddleware(messageHandler.DeleteMessage, db))
 
 	return http.StripPrefix("/messages", messageMux)
 }

@@ -75,6 +75,11 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	userAuth := middleware.ExtractUserAuth(r)
 	text := r.FormValue("text")
 
+	if text == "" {
+		http.Error(w, "The message text must not be empty!", http.StatusNotAcceptable)
+		return
+	}
+
 	err := h.Repo.CreateMessage(r.Context(), models.Message{
 		Author:   userAuth.UserID,
 		Text:     text,

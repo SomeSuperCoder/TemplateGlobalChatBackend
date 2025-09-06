@@ -7,8 +7,8 @@ import (
 )
 
 type Message struct {
-	ID       bson.ObjectID `bson:"_id,omitempty"`
-	Author   bson.ObjectID `bson:"author"`
-	Text     string        `bson:"text"`
-	CratedAt time.Time     `bson:"created_at"`
+	ID       bson.ObjectID `bson:"_id,omitempty" json:"_id"`
+	Author   bson.ObjectID `bson:"author" json:"author"`
+	Text     string        `bson:"text" json:"text"`
+	CratedAt time.Time     `bson:"created_at" json:"created_at"`
 }
