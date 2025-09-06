@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SomeSuperCoder/global-chat/handers"
+	"github.com/SomeSuperCoder/global-chat/handlers"
 	"github.com/SomeSuperCoder/global-chat/middleware"
 	"github.com/SomeSuperCoder/global-chat/repository"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -24,7 +24,7 @@ func loadRoutes(db *mongo.Database) http.Handler {
 
 func loadAuthRoutes(db *mongo.Database) http.Handler {
 	authMux := http.NewServeMux()
-	authHandler := &handers.AuthHandler{
+	authHandler := &handlers.AuthHandler{
 		Repo: repository.UserRepo{
 			Database: db,
 		},
@@ -39,7 +39,7 @@ func loadAuthRoutes(db *mongo.Database) http.Handler {
 
 func loadMessageRoutes(db *mongo.Database) http.Handler {
 	messageMux := http.NewServeMux()
-	messageHandler := &handers.MessageHandler{
+	messageHandler := &handlers.MessageHandler{
 		Repo: repository.MessageRepo{
 			Database: db,
 		},
