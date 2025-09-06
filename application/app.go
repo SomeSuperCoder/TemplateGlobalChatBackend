@@ -48,7 +48,7 @@ func (a *App) Start(ctx context.Context) error {
 
 	// ========== HTTP server ==========
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":8090",
 		Handler: a.router,
 	}
 
