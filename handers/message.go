@@ -19,8 +19,8 @@ type MessageHandler struct {
 }
 
 type GetResult struct {
-	Messages []models.Message `json:"messages"`
-	Count    int64            `json:"count"`
+	Messages   []models.Message `json:"messages"`
+	TotalCount int64            `json:"total_count"`
 }
 
 func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +50,7 @@ func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch messages
-	messages, count, err := h.Repo.FindPaged(r.Context(), int64(pageNumber), int64(limitNumber))
+	messages, totalCount, err := h.Repo.FindPaged(r.Context(), int64(pageNumber), int64(limitNumber))
 	if err != nil {
 		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
@@ -58,8 +58,8 @@ func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 
 	// Make a result
 	result := &GetResult{
-		Messages: messages,
-		Count:    count,
+		Messages:   messages,
+		TotalCount: totalCount,
 	}
 	resultString, err := json.Marshal(result)
 	if err != nil {
@@ -132,5 +132,9 @@ func (h *MessageHandler) UpdateMessageText(w http.ResponseWriter, r *http.Reques
 	messageText := string(body)
 
 	// Update the message
-	h.Repo.UpdateMessageText(r.Context(), parsedMessageID, messageText)
+	err = h.Repo.UpdateMessageText(r.Context(), parsedMessageID, messageText)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

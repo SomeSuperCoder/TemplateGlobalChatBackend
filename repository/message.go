@@ -54,7 +54,9 @@ func (r *MessageRepo) DeleteMessage(ctx context.Context, messageID bson.ObjectID
 
 func (r *MessageRepo) UpdateMessageText(ctx context.Context, messageID bson.ObjectID, newText string) error {
 	update := bson.M{
-		"text": newText,
+		"$set": bson.M{
+			"text": newText,
+		},
 	}
 
 	_, err := r.Database.Collection("messages").UpdateByID(ctx, messageID, update)
