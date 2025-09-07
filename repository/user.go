@@ -72,8 +72,12 @@ func (r *UserRepo) AuthCheck(ctx context.Context, sessionToken string, csrfToken
 	var user models.User
 
 	err := r.Database.Collection("users").FindOne(ctx, bson.M{
-		"sessions.session_token": sessionToken,
-		"sessions.csrf_token":    csrfToken,
+		"sessions": bson.M{
+			"$elemMatch": bson.M{
+				"session_token": sessionToken,
+				"csrf_token":    csrfToken,
+			},
+		},
 	}).Decode(&user)
 
 	if err != nil {
