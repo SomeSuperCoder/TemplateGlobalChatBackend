@@ -18,7 +18,7 @@ type MessageHandler struct {
 	Repo repository.MessageRepo
 }
 
-type GetResult struct {
+type MessageResponse struct {
 	Messages   []models.Message `json:"messages"`
 	TotalCount int64            `json:"total_count"`
 }
@@ -57,7 +57,7 @@ func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Make a result
-	result := &GetResult{
+	result := &MessageResponse{
 		Messages:   messages,
 		TotalCount: totalCount,
 	}

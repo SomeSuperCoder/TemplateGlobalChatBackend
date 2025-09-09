@@ -29,6 +29,11 @@ export default function () {
       session_token: sessionToken,
     },
   });
-  check(res, { "status is 200": (res) => res.status === 200 });
+  let checkResult = check(res, {
+    "status is 200": (res) => res.status === 200,
+  });
+  if (!checkResult) {
+    fail(`Request failed with status ${res.status}`);
+  }
   sleep(1);
 }
