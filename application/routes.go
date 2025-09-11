@@ -24,12 +24,13 @@ func loadRoutes(db *mongo.Database) http.Handler {
 
 func loadAuthRoutes(db *mongo.Database) http.Handler {
 	authMux := http.NewServeMux()
-	authHandler := &handlers.AuthHandler{
+	authHandler := &handlers.UserHandler{
 		Repo: repository.UserRepo{
 			Database: db,
 		},
 	}
 
+	authMux.HandleFunc("GET /{id}", authHandler.GetUser)
 	authMux.HandleFunc("POST /register", authHandler.Register)
 	authMux.HandleFunc("POST /login", authHandler.Login)
 	authMux.HandleFunc("POST /logout", middleware.AuthMiddleware(authHandler.Logout, db))

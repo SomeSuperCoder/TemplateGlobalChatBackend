@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,13 +11,18 @@ import (
 	"github.com/SomeSuperCoder/global-chat/models"
 	"github.com/SomeSuperCoder/global-chat/repository"
 	"github.com/SomeSuperCoder/global-chat/utils"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-type AuthHandler struct {
+type UserHandler struct {
 	Repo repository.UserRepo
 }
 
-func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
+// ==============================================================
+// ================ Auth-related handlers =======================
+// ==============================================================
+
+func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username") // Allowed
 	password := r.FormValue("password") // Allowed
 
@@ -52,15 +58,15 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username") // Allowed
 	password := r.FormValue("password") // Allowed
 
 	// Get the user
-	user, err := h.Repo.GetUser(r.Context(), username)
+	user, err := h.Repo.GetUserByUsername(r.Context(), username)
 
 	// Check if user exists
-	if errors.Is(err, repository.ErrUserNotFound) {
+	if errors.Is(err, repository.ErrEntryNotFound) {
 		http.Error(w, "Wrong username or password", http.StatusUnauthorized)
 		return
 	}
@@ -117,7 +123,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 // This functions needs to be wrapped with an auth middleware
-func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	userAuth := middleware.ExtractUserAuth(r)
 
 	// Reset cookies
@@ -144,4 +150,35 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintln(w, "Logged out successfully!")
+}
+
+// ==============================================================
+// ================ Non-auth-related handlers ===================
+// ==============================================================
+func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
+	userID := r.PathValue("id")
+
+	parsedUserID, err := bson.ObjectIDFromHex(userID)
+	if err != nil {
+		http.Error(w, "Invalid user ID provided", http.StatusBadRequest)
+		return
+	}
+
+	user, err := h.Repo.GetUserByID(r.Context(), parsedUserID)
+	if err != nil {
+		if err == repository.ErrEntryNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	serializedUser, err := json.Marshal(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintln(w, string(serializedUser))
 }

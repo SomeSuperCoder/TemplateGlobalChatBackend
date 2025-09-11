@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
 type UserRepo struct {
@@ -24,19 +25,31 @@ func (r *UserRepo) CreateUser(ctx context.Context, user *models.User) error {
 	return err
 }
 
-var ErrUserNotFound = errors.New("user not found")
+func (r *UserRepo) GetUserByID(ctx context.Context, userID bson.ObjectID) (*models.User, error) {
+	return r.getUserCommon(ctx, bson.M{"_id": userID})
+}
 
-func (r *UserRepo) GetUser(ctx context.Context, username string) (*models.User, error) {
+func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
+	return r.getUserCommon(ctx, bson.M{"username": username})
+}
+
+func (r *UserRepo) getUserCommon(ctx context.Context, filter bson.M) (*models.User, error) {
+	opts := options.FindOne().SetProjection(bson.M{
+		"sessions":        0,
+		"hashed_password": 0,
+	})
+
 	var user models.User
-	err := r.Database.Collection("users").FindOne(ctx, bson.M{"username": username}).Decode(&user)
+	err := r.Database.Collection("users").FindOne(ctx, filter, opts).Decode(&user)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrUserNotFound
+			return nil, ErrEntryNotFound
 		}
 		return nil, err
 	}
 
 	return &user, err
+
 }
 
 func (r *UserRepo) DoesExist(ctx context.Context, username string) bool {

@@ -95,15 +95,13 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 func (h *MessageHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 	// Get the message ID
 	messageID := r.PathValue("id")
-	if messageID == "" {
-		panic("no message ID provided")
-	}
 
 	parsedMessageID, err := bson.ObjectIDFromHex(messageID)
 	if err != nil {
 		http.Error(w, "Invalid message ID provided", http.StatusBadRequest)
 		return
 	}
+
 	// Delete the message
 	h.Repo.DeleteMessage(r.Context(), parsedMessageID)
 }
