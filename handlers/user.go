@@ -174,6 +174,9 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Security
+	user.HashedPassword = "SECRET"
+
 	serializedUser, err := json.Marshal(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

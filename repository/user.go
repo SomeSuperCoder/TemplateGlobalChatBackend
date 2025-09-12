@@ -35,8 +35,7 @@ func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*mod
 
 func (r *UserRepo) getUserCommon(ctx context.Context, filter bson.M) (*models.User, error) {
 	opts := options.FindOne().SetProjection(bson.M{
-		"sessions":        0,
-		"hashed_password": 0,
+		"sessions": 0,
 	})
 
 	var user models.User
