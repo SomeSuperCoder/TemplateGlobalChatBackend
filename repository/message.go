@@ -14,7 +14,7 @@ type MessageRepo struct {
 }
 
 func (r *MessageRepo) FindPaged(ctx context.Context, page, limit int64) ([]models.Message, int64, error) {
-	var messages []models.Message
+	var messages = []models.Message{}
 
 	// Set pagination options
 	skip := (page - 1) * limit
