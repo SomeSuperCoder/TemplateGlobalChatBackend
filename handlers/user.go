@@ -158,6 +158,7 @@ func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID := r.PathValue("id")
 
+	// Parse the user id
 	parsedUserID, err := bson.ObjectIDFromHex(userID)
 	if err != nil {
 		http.Error(w, "Invalid user ID provided", http.StatusBadRequest)
@@ -165,6 +166,17 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user, err := h.Repo.GetUserByID(r.Context(), parsedUserID)
+	getUserCommon(user, err, w)
+}
+
+func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
+	username := r.PathValue("username")
+
+	user, err := h.Repo.GetUserByUsername(r.Context(), username)
+	getUserCommon(user, err, w)
+}
+
+func getUserCommon(user *models.User, err error, w http.ResponseWriter) {
 	if err != nil {
 		if err == repository.ErrEntryNotFound {
 			http.Error(w, err.Error(), http.StatusNotFound)

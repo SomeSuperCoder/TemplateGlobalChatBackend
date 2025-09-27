@@ -31,6 +31,7 @@ func loadAuthRoutes(db *mongo.Database) http.Handler {
 	}
 
 	authMux.HandleFunc("GET /{id}", authHandler.GetUser)
+	authMux.HandleFunc("GET /by-name/{username}", authHandler.GetUserByUsername)
 	authMux.HandleFunc("POST /register", authHandler.Register)
 	authMux.HandleFunc("POST /login", authHandler.Login)
 	authMux.HandleFunc("POST /logout", middleware.AuthMiddleware(authHandler.Logout, db))
