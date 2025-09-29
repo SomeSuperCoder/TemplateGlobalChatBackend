@@ -129,6 +129,11 @@ func (h *MessageHandler) UpdateMessageText(w http.ResponseWriter, r *http.Reques
 
 	messageText := string(body)
 
+	if len(messageText) == 0 {
+		http.Error(w, "Message length must not be 0", http.StatusNotAcceptable)
+		return
+	}
+
 	// Update the message
 	err = h.Repo.UpdateMessageText(r.Context(), parsedMessageID, messageText)
 	if err != nil {
