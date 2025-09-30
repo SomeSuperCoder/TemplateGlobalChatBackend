@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,8 +10,11 @@ import (
 	"github.com/SomeSuperCoder/global-chat/middleware"
 	"github.com/SomeSuperCoder/global-chat/models"
 	"github.com/SomeSuperCoder/global-chat/repository"
+	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+var validate = validator.New()
 
 type MessageHandler struct {
 	Repo repository.MessageRepo
@@ -24,7 +26,7 @@ type MessageResponse struct {
 }
 
 func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
-	// Prase data
+	// Prase
 	page := r.URL.Query().Get("page")
 	limit := r.URL.Query().Get("limit")
 
@@ -49,14 +51,14 @@ func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch messages
+	// Do work
 	messages, totalCount, err := h.Repo.FindPaged(r.Context(), int64(pageNumber), int64(limitNumber))
 	if err != nil {
 		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
 	}
 
-	// Make a result
+	// Respond
 	result := &MessageResponse{
 		Messages:   messages,
 		TotalCount: totalCount,
@@ -67,22 +69,34 @@ func (h *MessageHandler) GetMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Send the result
 	fmt.Fprintln(w, string(resultString))
 }
 
 func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
+	// Get auth data
 	userAuth := middleware.ExtractUserAuth(r)
-	text := r.FormValue("text")
 
-	if text == "" {
-		http.Error(w, "The message text must not be empty!", http.StatusNotAcceptable)
+	// Parse
+	var request struct {
+		Text string `json:"text" bson:"text,omitempty" validate:"required,min=1,max=500"`
+	}
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse JSON: %v", err.Error()), http.StatusBadRequest)
 		return
 	}
 
-	err := h.Repo.CreateMessage(r.Context(), models.Message{
+	// Validate
+	err = validate.Struct(request)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("JSON validation failed: %v", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Do work
+	err = h.Repo.CreateMessage(r.Context(), models.Message{
 		Author:   userAuth.UserID,
-		Text:     text,
+		Text:     request.Text,
 		CratedAt: time.Now(),
 	})
 
@@ -90,10 +104,47 @@ func (h *MessageHandler) CreateMessage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Respond
+	fmt.Fprintf(w, "Message successfully created")
+}
+
+func (h *MessageHandler) UpdateMessageText(w http.ResponseWriter, r *http.Request) {
+	// Parse path params
+	messageID := r.PathValue("id")
+
+	parsedMessageID, err := bson.ObjectIDFromHex(messageID)
+	if err != nil {
+		http.Error(w, "Invalid message ID provided", http.StatusBadRequest)
+		return
+	}
+	// Parse body
+	var request struct {
+		Text string `json:"text" bson:"text,omitempty" validate:"omitempty,min=1,max=500"`
+	}
+	err = json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Failed to parse JSON: %v", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Validate
+	err = validate.Struct(request)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("JSON validation failed: %v", err.Error()), http.StatusBadRequest)
+		return
+	}
+
+	// Do work
+	err = h.Repo.UpdateMessage(r.Context(), parsedMessageID, request)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *MessageHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
-	// Get the message ID
+	// Parse
 	messageID := r.PathValue("id")
 
 	parsedMessageID, err := bson.ObjectIDFromHex(messageID)
@@ -104,40 +155,4 @@ func (h *MessageHandler) DeleteMessage(w http.ResponseWriter, r *http.Request) {
 
 	// Delete the message
 	h.Repo.DeleteMessage(r.Context(), parsedMessageID)
-}
-
-func (h *MessageHandler) UpdateMessageText(w http.ResponseWriter, r *http.Request) {
-	// Get the message ID
-	messageID := r.PathValue("id")
-	if messageID == "" {
-		panic("No message ID provided")
-	}
-
-	parsedMessageID, err := bson.ObjectIDFromHex(messageID)
-	if err != nil {
-		http.Error(w, "Invalid message ID provided", http.StatusBadRequest)
-		return
-	}
-
-	// Get the message text
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Error reading request body", http.StatusBadRequest)
-		return
-	}
-	defer r.Body.Close()
-
-	messageText := string(body)
-
-	if len(messageText) == 0 {
-		http.Error(w, "Message length must not be 0", http.StatusNotAcceptable)
-		return
-	}
-
-	// Update the message
-	err = h.Repo.UpdateMessageText(r.Context(), parsedMessageID, messageText)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 }
