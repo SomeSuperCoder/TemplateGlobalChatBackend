@@ -41,9 +41,6 @@ func (r *UserRepo) getUserCommon(ctx context.Context, filter bson.M) (*models.Us
 	var user models.User
 	err := r.Database.Collection("users").FindOne(ctx, filter, opts).Decode(&user)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrEntryNotFound
-		}
 		return nil, err
 	}
 

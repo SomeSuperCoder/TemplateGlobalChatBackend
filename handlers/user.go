@@ -12,6 +12,7 @@ import (
 	"github.com/SomeSuperCoder/global-chat/repository"
 	"github.com/SomeSuperCoder/global-chat/utils"
 	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 type UserHandler struct {
@@ -66,7 +67,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	user, err := h.Repo.GetUserByUsername(r.Context(), username)
 
 	// Check if user exists
-	if errors.Is(err, repository.ErrEntryNotFound) {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		http.Error(w, "Wrong username or password", http.StatusUnauthorized)
 		return
 	}
@@ -178,7 +179,7 @@ func (h *UserHandler) GetUserByUsername(w http.ResponseWriter, r *http.Request) 
 
 func getUserCommon(user *models.User, err error, w http.ResponseWriter) {
 	if err != nil {
-		if err == repository.ErrEntryNotFound {
+		if err == mongo.ErrNoDocuments {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
